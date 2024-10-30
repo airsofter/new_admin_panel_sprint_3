@@ -1,0 +1,100 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-10-20 12:10+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: movies/admin.py:41 movies/models.py:34 movies/models.py:76
+msgid "genres"
+msgstr "genres"
+
+#: movies/models.py:25 movies/models.py:33 movies/models.py:100
+#: movies/models.py:110
+msgid "genre"
+msgstr "genre"
+
+#: movies/models.py:26 movies/models.py:57
+msgid "description"
+msgstr "description"
+
+#: movies/models.py:39
+msgid "name"
+msgstr "name"
+
+#: movies/models.py:46 movies/models.py:130 movies/models.py:146
+msgid "person"
+msgstr "person"
+
+#: movies/models.py:47
+msgid "persons"
+msgstr "persons"
+
+#: movies/models.py:51
+msgid "movie"
+msgstr "movie"
+
+#: movies/models.py:52
+msgid "tv show"
+msgstr "tv show"
+
+#: movies/models.py:56
+msgid "title"
+msgstr "title"
+
+#: movies/models.py:58
+msgid "creation date"
+msgstr "creation date"
+
+#: movies/models.py:60
+msgid "rating"
+msgstr "rating"
+
+#: movies/models.py:68
+msgid "type"
+msgstr "type"
+
+#: movies/models.py:85
+msgid "film"
+msgstr "film"
+
+#: movies/models.py:86
+msgid "films"
+msgstr "films"
+
+#: movies/models.py:111
+msgid "film genres"
+msgstr "film genres"
+
+#: movies/models.py:121
+msgid "actor"
+msgstr "actor"
+
+#: movies/models.py:122
+msgid "director"
+msgstr "director"
+
+#: movies/models.py:123
+msgid "writer"
+msgstr "writer"
+
+#: movies/models.py:134
+msgid "role"
+msgstr "role"
+
+#: movies/models.py:147
+msgid "film persons"
+msgstr "film persons"
