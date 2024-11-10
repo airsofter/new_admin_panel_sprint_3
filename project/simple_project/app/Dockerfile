@@ -1,11 +1,8 @@
-FROM python:3.10
+FROM python:3.12
 
 WORKDIR /opt/app
 
-# COPY run_uwsgi.sh run_uwsgi.sh # TODO удалить
-COPY ../../pyproject.toml pyproject.toml
-# COPY requirements.txt requirements.txt # TODO удалить
-# COPY uwsgi/uwsgi.ini uwsgi.ini  # TODO удалить
+COPY pyproject.toml pyproject.toml
 
 RUN  mkdir -p /opt/app/static/ \
      && mkdir -p /opt/app/media/ \
@@ -14,6 +11,7 @@ RUN  mkdir -p /opt/app/static/ \
      && poetry config virtualenvs.create false \
      && poetry install --no-interaction --no-ansi
 
-COPY . .
+COPY project/simple_project/app .
+
 
 ENTRYPOINT ["sh", "run_uwsgi.sh"]
