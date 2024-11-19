@@ -13,8 +13,18 @@ DATABASE = {
     "password": os.getenv("POSTGRES_PASSWORD"),
 }
 
+DATABASE_LOCAL = {
+    "host": "127.0.0.1",
+    "port": "5432",
+    "dbname": "theatre",
+    "user": "postgres",
+    "password": os.getenv("POSTGRES_PASSWORD"),
+}
+
 ES_HOST = f"http://{os.getenv('ES_HOST')}:{os.getenv('ES_PORT')}"
 INDEX_NAME = "movies"
+ELASTIC_PASSWORD = os.getenv("ELASTIC_PASSWORD")
+ELASTIC_USER = os.getenv("ELASTIC_USER")
 
 # TODO: возможно, удалить
 ELASTICSEARCH = {
@@ -22,7 +32,7 @@ ELASTICSEARCH = {
     "port": os.getenv("ES_PORT"),
 }
 
-STATE_FILE_PATH = "/state.json"
+STATE_FILE_PATH = "state.json"
 
 # INDEX_SETTINGS = json.load(open()) # TODO: удалить
 INDEX_SETTINGS = {

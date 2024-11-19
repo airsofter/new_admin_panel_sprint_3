@@ -1,31 +1,65 @@
+import datetime
+import logging
 import time
-import backoff
-from PostgresClient import PostgresDB
-from ElasticSearchClient import ElasticSearchClient
+from config import STATE_FILE_PATH
 from Transformer import Transformer
-from StateManager import StateManager
+from StateManager import StateManager, JsonFileStorage
+from PostgresClient import PostgresClient
+from ElasticSearchClient import ElasticSearchClient
+
+logging.basicConfig(level=logging.INFO)
 
 
-@backoff
-def etl_process():
-    state_manager = StateManager("state/state.json")
-    last_processed_id = state_manager.get_state("last_processed_id", 0)
+class Main:
+    def __init__(self):
+        self.pg_client = PostgresClient()
+        self.es_client = ElasticSearchClient()
+        self.transformer = Transformer()
+        self.state_manager = StateManager(JsonFileStorage(STATE_FILE_PATH))
+        self.state_manager.add_listener(
+            lambda ids, table: self.es_client.load_data(
+                self.transformer(self.tables[table][1](ids))
+            )
+        )
+        self.es_client.create_index()
 
-    postgres = PostgresDB()
-    elastic = ElasticSearchClient()
+        self.tables = {
+            "film_work": (
+                self.pg_client.get_updated_film_ids,
+                self.pg_client.get_film_details,
+            ),
+            "person": (
+                self.pg_client.get_updated_person_ids,
+                lambda ids: self.pg_client.get_film_details(
+                    self.pg_client.get_film_ids_by_person_ids(ids)
+                ),
+            ),
+            "genre": (
+                self.pg_client.get_updated_genre_ids,
+                lambda ids: self.pg_client.get_film_details(
+                    self.pg_client.get_film_ids_by_genre_ids(ids)
+                ),
+            ),
+        }
 
-    while True:
-        movies = postgres.fetch_movies(last_processed_id)
-        if not movies:
+    def mainloop(self):
+        while True:
+            for table in self.tables:
+                self.last_modified = self.state_manager.get_state() or datetime.datetime.strptime(
+                    "1970-01-01 00:00:00", "%Y-%m-%d %H:%M:%S"
+                )
+                logging.info(f"Обрабатываем таблицу: {table}")
+
+                now = datetime.datetime.now()
+                self.state_manager.change_state(
+                    self.last_modified, self.tables[table][0](self.last_modified), table
+                )
+
+                logging.info(f"Состояние обновлено для {table} до {self.last_modified}")
+                self.last_modified = now
+
             time.sleep(10)
-            continue
-
-        transformed_data = [Transformer.transform(movie) for movie in movies]
-        elastic.bulk_insert(transformed_data)
-
-        last_processed_id = movies[-1]["id"]
-        state_manager.save_state("last_processed_id", last_processed_id)
 
 
 if __name__ == "__main__":
-    etl_process()
+    Main().mainloop()

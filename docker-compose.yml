@@ -9,8 +9,11 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.6.2
     environment:
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
+      - discovery.type=single-${DISCOVERY_TYPE}
+      - bootstrap.memory_lock=${BOOTSTRAP_MEMORY_LOCK}
+      - xpack.security.enabled=${XPACK_SECURITY_ENABLED}
+      - xpack.security.http.ssl.enabled=${XPACK_SECURITY_HTTP_SSL_ENABLED}
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
     ports:
       - ${ES_PORT}:${ES_PORT}
 
