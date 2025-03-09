@@ -4,12 +4,13 @@ volumes:
   postgres_data:
   static:
   media:
+  state:
 
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.6.2
     environment:
-      - discovery.type=single-${DISCOVERY_TYPE}
+      - discovery.type=${DISCOVERY_TYPE}
       - bootstrap.memory_lock=${BOOTSTRAP_MEMORY_LOCK}
       - xpack.security.enabled=${XPACK_SECURITY_ENABLED}
       - xpack.security.http.ssl.enabled=${XPACK_SECURITY_HTTP_SSL_ENABLED}
@@ -42,9 +43,11 @@ services:
   etl:
     build:
       context: ./
-      dockerfile: ./etl/postgres_to_es/Dockerfile
+      dockerfile: ./etl/Dockerfile
     env_file:
       - .env
+    volumes:
+      - state:/etl/state
     depends_on:
       - theatre-db
       - elasticsearch

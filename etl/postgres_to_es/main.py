@@ -8,6 +8,9 @@ from ElasticSearchClient import ElasticSearchClient
 from logging_config import logger
 
 
+time.sleep(60)
+
+
 class Main:
     def __init__(self):
         self.pg_client = PostgresClient()

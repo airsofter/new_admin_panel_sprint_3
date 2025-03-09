@@ -20,7 +20,7 @@ DATABASE_LOCAL = {
 }
 BATCH_SIZE = 100
 
-STATE_FILE_PATH = "state.json"
+STATE_FILE_PATH = "state/state.json"
 
 ES_HOST = f"http://{os.getenv('ES_HOST')}:{os.getenv('ES_PORT')}"
 INDEX_NAME = "movies"

@@ -1,7 +1,21 @@
 # Dockerfile
-FROM python:3.9-slim
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    python3-dev \
+    libpcre3 \
+    libpcre3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /etl
-COPY . /etl
 
-CMD ["cd postgres_to_es/", "python", "main.py"]
+COPY etl/postgres_to_es .
+COPY pyproject.toml pyproject.toml
+
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install poetry \
+    && poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi
+
+CMD ["python", "main.py"]

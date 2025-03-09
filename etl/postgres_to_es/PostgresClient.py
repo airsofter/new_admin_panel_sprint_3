@@ -3,7 +3,7 @@ from typing import Generator, List, Dict, Any, Optional
 from psycopg.rows import dict_row
 from contextlib import closing
 from logging_config import logger
-from config import DATABASE_LOCAL, BATCH_SIZE
+from config import BATCH_SIZE, DATABASE
 from backoff import backoff
 
 
@@ -13,7 +13,7 @@ class PostgresClient:
     def fetch_records(
         self, query: str, params: Optional[tuple] = None, batch_size: int = BATCH_SIZE
     ) -> Generator[Dict[str, Any], None, None]:
-        with closing(psycopg.connect(**DATABASE_LOCAL)) as conn:
+        with closing(psycopg.connect(**DATABASE)) as conn:
             try:
                 with conn.cursor(row_factory=dict_row) as cursor:
                     cursor.execute(query, params)
