@@ -1,5 +1,6 @@
 import datetime
 import time
+from typing import Any, Callable, Dict
 from config import STATE_FILE_PATH
 from Transformer import Transformer
 from StateManager import StateManager, JsonFileStorage
@@ -8,11 +9,13 @@ from ElasticSearchClient import ElasticSearchClient
 from logging_config import logger
 
 
-time.sleep(60)
-
-
 class Main:
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Инициализация класса Main, создание клиентов
+        для работы с PostgreSQL и Elasticsearch,
+        а также настройка состояния и загрузки данных.
+        """
         self.pg_client = PostgresClient()
         self.es_client = ElasticSearchClient()
         self.transformer = Transformer()
@@ -24,34 +27,44 @@ class Main:
         )
         self.es_client.create_index()
 
-        self.tables = {
+        self.tables: Dict[
+            str,
+            tuple[
+                Callable[
+                    [datetime.datetime],
+                    list[int]], Callable[[list[int]], Any]
+            ],
+        ] = {
             "film_work": (
                 self.pg_client.get_updated_film_ids,
-                lambda ids: self.pg_client.get_film_details(
-                    ids
-                ),
+                lambda ids: self.pg_client.get_film_details(ids),
             ),
             "person": (
                 self.pg_client.get_updated_person_ids,
                 lambda ids: self.pg_client.get_film_details(
-                    [film['id'] for film in self.pg_client.get_film_ids_by_person_ids(ids)]
+                    [
+                        film["id"]
+                        for film in self.pg_client.get_film_ids_by_person_ids(ids)
+                    ]
                 ),
             ),
             "genre": (
                 self.pg_client.get_updated_genre_ids,
                 lambda ids: self.pg_client.get_film_details(
-                    [film['id'] for film in self.pg_client.get_film_ids_by_genre_ids(ids)]
+                    [
+                        film["id"]
+                        for film in self.pg_client.get_film_ids_by_genre_ids(ids)
+                    ]
                 ),
             ),
         }
 
         self.last_modified_by_table = {
-            table: self.state_manager.get_state(table)
-            or datetime.datetime.strptime("1970-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
+            table: self.state_manager.get_state(table) or datetime.datetime.min
             for table in self.tables
         }
 
-    def mainloop(self):
+    def mainloop(self) -> None:
         while True:
             for table in self.tables:
                 last_modified = self.last_modified_by_table[table]

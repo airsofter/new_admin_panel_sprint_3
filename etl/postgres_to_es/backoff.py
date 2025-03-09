@@ -1,22 +1,33 @@
 import time
 import logging
 from functools import wraps
+from typing import Any, Callable
 
 
-def backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10):
-    def func_wrapper(func):
+def backoff(
+    start_sleep_time: float = 0.1,
+    factor: float = 2,
+    border_sleep_time: float = 10,
+    max_attempts: int = 10
+) -> Callable:
+
+    def func_wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
-        def inner(self, *args, **kwargs):
+        def inner(self, *args: Any, **kwargs: Any) -> Any:
             logging.info(f"Аргументы: {args}, Ключевые аргументы: {kwargs}")
             attempt = 0
             delay = start_sleep_time
 
-            while True:
+            while attempt < max_attempts:
                 try:
                     return func(self, *args, **kwargs)
                 except Exception as e:
                     attempt += 1
                     logging.warning(f"Попытка {attempt}: Ошибка в {func.__name__}: {e}")
+
+                    if attempt >= max_attempts:
+                        logging.error(f"Превышено максимальное количество попыток ({max_attempts})")
+                        raise e
 
                     if delay >= border_sleep_time:
                         delay = border_sleep_time

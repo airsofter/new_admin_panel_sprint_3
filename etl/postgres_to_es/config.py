@@ -4,6 +4,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+START_SLEEP_TIME = 0.1
+MAX_ATTEMPTS = 10
+BORDER_SLEEP_TIME = 10
+FACTOR = 2
+
 DATABASE = {
     "host": os.getenv("SQL_HOST"),
     "port": os.getenv("SQL_PORT"),

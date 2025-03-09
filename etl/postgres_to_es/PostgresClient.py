@@ -3,13 +3,19 @@ from typing import Generator, List, Dict, Any, Optional
 from psycopg.rows import dict_row
 from contextlib import closing
 from logging_config import logger
-from config import BATCH_SIZE, DATABASE
+from config import (BATCH_SIZE, BORDER_SLEEP_TIME,
+                    DATABASE, FACTOR, MAX_ATTEMPTS, START_SLEEP_TIME)
 from backoff import backoff
 
 
 class PostgresClient:
     """Клиент для взаимодействия с PostgreSQL."""
-    @backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10)
+    @backoff(
+        start_sleep_time=START_SLEEP_TIME,
+        factor=FACTOR,
+        border_sleep_time=BORDER_SLEEP_TIME,
+        max_attempts=MAX_ATTEMPTS
+    )
     def fetch_records(
         self, query: str, params: Optional[tuple] = None, batch_size: int = BATCH_SIZE
     ) -> Generator[Dict[str, Any], None, None]:

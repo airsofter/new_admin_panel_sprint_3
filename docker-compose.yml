@@ -17,6 +17,14 @@ services:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
     ports:
       - ${ES_PORT}:${ES_PORT}
+    healthcheck:
+      test: |
+        curl -fs -u ${ELASTIC_USER}:${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health |
+        grep -E '"status":"(yellow|green)"' || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   theatre-db:
     image: postgres:13-alpine
@@ -49,6 +57,9 @@ services:
     volumes:
       - state:/etl/state
     depends_on:
-      - theatre-db
-      - elasticsearch
-      - service
+      theatre-db:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
+      service:
+        condition: service_started

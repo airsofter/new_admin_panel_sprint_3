@@ -2,9 +2,10 @@ import json
 from typing import List, Dict, Any, Generator
 from elasticsearch import Elasticsearch, exceptions
 from backoff import backoff
-from config import (ES_HOST, INDEX_NAME,
+from config import (BORDER_SLEEP_TIME, ES_HOST, FACTOR, INDEX_NAME,
                     INDEX_SETTINGS, ELASTIC_USER,
-                    ELASTIC_PASSWORD, CHUNK_SIZE)
+                    ELASTIC_PASSWORD, CHUNK_SIZE, MAX_ATTEMPTS,
+                    START_SLEEP_TIME)
 from logging_config import logger
 
 
@@ -23,7 +24,12 @@ class ElasticSearchClient:
         for i in range(0, len(data), chunk_size):
             yield data[i:i + chunk_size]
 
-    @backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10)
+    @backoff(
+        start_sleep_time=START_SLEEP_TIME,
+        factor=FACTOR,
+        border_sleep_time=BORDER_SLEEP_TIME,
+        max_attempts=MAX_ATTEMPTS,
+    )
     def create_index(self) -> None:
         """Создает индекс в Elasticsearch."""
         if not self.es.indices.exists(index=INDEX_NAME):
@@ -40,7 +46,12 @@ class ElasticSearchClient:
         else:
             logger.info(f"Индекс '{INDEX_NAME}' уже существует.")
 
-    @backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10)
+    @backoff(
+        start_sleep_time=START_SLEEP_TIME,
+        factor=FACTOR,
+        border_sleep_time=BORDER_SLEEP_TIME,
+        max_attempts=MAX_ATTEMPTS,
+    )
     def load_data(self, data: List[Dict[str, Any]]) -> None:
         """Загружает данные в Elasticsearch чанками."""
         logger.info(f"Всего записей для загрузки: {len(data)}")
