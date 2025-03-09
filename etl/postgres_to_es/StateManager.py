@@ -1,8 +1,8 @@
 import json
 import abc
-from typing import Any, Dict
 import os
-import datetime
+from typing import Any, Dict, List, Optional
+from logging_config import logger
 
 
 class BaseStorage(abc.ABC):
@@ -27,17 +27,23 @@ class JsonFileStorage(BaseStorage):
 
     def save_state(self, state: Dict[str, Any]) -> None:
         """Сохранить состояние в хранилище."""
-        with open(self.file_path, "w") as file:
-            json.dump(state, file)
+        try:
+            with open(self.file_path, "w") as file:
+                json.dump(state, file)
+        except (OSError, IOError) as e:
+            logger.error(f"Ошибка при сохранении состояния: {e}")
 
     def load_state(self) -> Dict[str, Any]:
         """Получить состояние из хранилища."""
         if os.path.exists(self.file_path):
+            logger.info(f"Загрузка состояния из {self.file_path}")
             with open(self.file_path, "r") as file:
-                return json.load(file)
-        return (
-            datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S"),
-        )
+                try:
+                    data = json.load(file)
+                    return data if isinstance(data, dict) else {}
+                except json.JSONDecodeError:
+                    return {}
+        return {}
 
 
 class StateManager:
@@ -49,72 +55,31 @@ class StateManager:
         self.listeners = []
 
     def add_listener(self, listener: Any) -> None:
+        """Добавить слушателя изменений состояния"""
         self.listeners.append(listener)
 
-    def notify(self, table) -> None:
+    def notify(self, ids, table) -> None:
+        """Уведомить слушателей об изменениях"""
+        if not ids:
+            logger.info(f"Нет обновлений в таблице {table}, пропускаем загрузку в Elasticsearch")
+            return
         for listener in self.listeners:
-            listener(self.state, table)
+            listener(ids, table)
 
-    def change_state(self, time, table_data, table) -> None:
-        self.state = time
+    def change_state(
+        self, time: Any, table_data: List[Dict[str, Any]], table: str
+    ) -> None:
+        """Обновить состояние и уведомить слушателей об изменениях"""
+        if self.state is None:
+            self.state = {}
+
+        self.state[table] = time.isoformat()
         self.storage.save_state(self.state)
-        ids = list([i["id"] for i in table_data])
+        ids = [id["id"] for id in table_data]
+        logger.info(f"Количество обновленных записей: {len(ids)}")
         self.notify(ids, table)
 
-    def get_state(self):
-        return self.state
-
-    # def set_state(self, key: str, value: Any) -> None:
-    #     """Установить состояние для определённого ключа."""
-    #     self._state[key] = value
-    #     self.storage.save_state(self._state)
-
-    # def get_state(self, key: str) -> Any:
-    #     """Получить состояние по определённому ключу."""
-    #     return self._state.get(key)
-
-
-# TODO: переделать
-# class StateManager:
-#     def __init__(self):
-#         self.state = {'Films': {},
-#                       'Janres': {},
-#                       'Persons': {}}
-#         self.listeners = []
-
-#     @state.setter
-#     def change_state(self, state):
-#         if state != self.state:
-#             self.state = state
-#             self.notify()
-
-#     def add_listener(self, listener):
-#         ...
-
-#     def notify(self):
-#         for listener in self.listeners:
-#             listener(self.state)
-
-# manager = StateManager()
-# def
-
-
-# class StateManager:
-#     def __init__(self, file_path):
-#         self.file_path = file_path
-#         self.state = self.load_state()
-
-#     def load_state(self):
-#         try:
-#             with open(self.file_path, "r") as file:
-#                 return json.load(file)
-#         except FileNotFoundError:
-#             return {}
-
-#     def save_state(self, key, value):
-#         self.state[key] = value
-#         with open(self.file_path, "w") as file:
-#             json.dump(self.state, file)
-
-#     def get_state(self, key, default=None):
-#         return self.state.get(key, default)
+    def get_state(self, table: str) -> Optional[str]:
+        """Получить последнее сохраненное состояние для таблицы"""
+        state = self.storage.load_state()
+        return state.get(table)

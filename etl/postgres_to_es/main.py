@@ -1,13 +1,11 @@
 import datetime
-import logging
 import time
 from config import STATE_FILE_PATH
 from Transformer import Transformer
 from StateManager import StateManager, JsonFileStorage
 from PostgresClient import PostgresClient
 from ElasticSearchClient import ElasticSearchClient
-
-logging.basicConfig(level=logging.INFO)
+from logging_config import logger
 
 
 class Main:
@@ -26,37 +24,48 @@ class Main:
         self.tables = {
             "film_work": (
                 self.pg_client.get_updated_film_ids,
-                self.pg_client.get_film_details,
+                lambda ids: self.pg_client.get_film_details(
+                    ids
+                ),
             ),
             "person": (
                 self.pg_client.get_updated_person_ids,
                 lambda ids: self.pg_client.get_film_details(
-                    self.pg_client.get_film_ids_by_person_ids(ids)
+                    [film['id'] for film in self.pg_client.get_film_ids_by_person_ids(ids)]
                 ),
             ),
             "genre": (
                 self.pg_client.get_updated_genre_ids,
                 lambda ids: self.pg_client.get_film_details(
-                    self.pg_client.get_film_ids_by_genre_ids(ids)
+                    [film['id'] for film in self.pg_client.get_film_ids_by_genre_ids(ids)]
                 ),
             ),
+        }
+
+        self.last_modified_by_table = {
+            table: self.state_manager.get_state(table)
+            or datetime.datetime.strptime("1970-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
+            for table in self.tables
         }
 
     def mainloop(self):
         while True:
             for table in self.tables:
-                self.last_modified = self.state_manager.get_state() or datetime.datetime.strptime(
-                    "1970-01-01 00:00:00", "%Y-%m-%d %H:%M:%S"
+                last_modified = self.last_modified_by_table[table]
+
+                logger.info(
+                    f"Обрабатываем таблицу: {table}, last_modified: {last_modified}"
                 )
-                logging.info(f"Обрабатываем таблицу: {table}")
 
                 now = datetime.datetime.now()
-                self.state_manager.change_state(
-                    self.last_modified, self.tables[table][0](self.last_modified), table
-                )
+                updated_ids = list(self.tables[table][0](last_modified))
 
-                logging.info(f"Состояние обновлено для {table} до {self.last_modified}")
-                self.last_modified = now
+                if updated_ids and len(updated_ids) > 0:
+                    self.state_manager.change_state(now, updated_ids, table)
+                    self.last_modified_by_table[table] = now
+                    logger.info(f"Состояние обновлено для {table} до {now}")
+                else:
+                    logger.info(f"Нет обновлений для {table}")
 
             time.sleep(10)
 

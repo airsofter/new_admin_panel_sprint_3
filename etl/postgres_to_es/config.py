@@ -1,5 +1,4 @@
 import os
-# import json # TODO: удалить
 from dotenv import load_dotenv
 
 
@@ -12,7 +11,6 @@ DATABASE = {
     "user": os.getenv("POSTGRES_USER"),
     "password": os.getenv("POSTGRES_PASSWORD"),
 }
-
 DATABASE_LOCAL = {
     "host": "127.0.0.1",
     "port": "5432",
@@ -20,21 +18,20 @@ DATABASE_LOCAL = {
     "user": "postgres",
     "password": os.getenv("POSTGRES_PASSWORD"),
 }
+BATCH_SIZE = 100
+
+STATE_FILE_PATH = "state.json"
 
 ES_HOST = f"http://{os.getenv('ES_HOST')}:{os.getenv('ES_PORT')}"
 INDEX_NAME = "movies"
 ELASTIC_PASSWORD = os.getenv("ELASTIC_PASSWORD")
 ELASTIC_USER = os.getenv("ELASTIC_USER")
+CHUNK_SIZE = 100
 
-# TODO: возможно, удалить
 ELASTICSEARCH = {
     "host": os.getenv("ES_HOST"),
     "port": os.getenv("ES_PORT"),
 }
-
-STATE_FILE_PATH = "state.json"
-
-# INDEX_SETTINGS = json.load(open()) # TODO: удалить
 INDEX_SETTINGS = {
     "settings": {
         "refresh_interval": "1s",
