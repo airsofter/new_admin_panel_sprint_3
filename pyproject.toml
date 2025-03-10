@@ -25,6 +25,7 @@ logging = "^0.4.9.6"
 requests = "^2.32.3"
 flake8 = "^7.1.1"
 black = "^24.10.0"
+pydantic-settings = "^2.8.1"
 
 [tool.flake8]
 max-line-length = 100

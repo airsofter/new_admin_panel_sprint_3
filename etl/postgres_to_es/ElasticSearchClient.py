@@ -2,19 +2,23 @@ import json
 from typing import List, Dict, Any, Generator
 from elasticsearch import Elasticsearch, exceptions
 from backoff import backoff
-from config import (BORDER_SLEEP_TIME, ES_HOST, FACTOR, INDEX_NAME,
-                    INDEX_SETTINGS, ELASTIC_USER,
-                    ELASTIC_PASSWORD, CHUNK_SIZE, MAX_ATTEMPTS,
-                    START_SLEEP_TIME)
+from config import BACKOFF_CONFIG, ELASTIC_CONFIG, ETL_SETTINGS, INDEX_SETTINGS
 from logging_config import logger
 
 
 class ElasticSearchClient:
-    def __init__(self):
-        """Инициализирует клиента Elasticsearch."""
+    def __init__(self) -> None:
+        """Инициализирует клиент Elasticsearch."""
+        es_config = ELASTIC_CONFIG.model_dump()
         self.es = Elasticsearch(
-            [ES_HOST],
-            http_auth=(ELASTIC_USER, ELASTIC_PASSWORD),
+            [
+                {
+                    "host": es_config["host"],
+                    "port": es_config["port"],
+                    "scheme": es_config["method"],
+                }
+            ],
+            http_auth=(es_config["user"], es_config["password"]),
         )
 
     def _generate_chunks(
@@ -24,34 +28,26 @@ class ElasticSearchClient:
         for i in range(0, len(data), chunk_size):
             yield data[i:i + chunk_size]
 
-    @backoff(
-        start_sleep_time=START_SLEEP_TIME,
-        factor=FACTOR,
-        border_sleep_time=BORDER_SLEEP_TIME,
-        max_attempts=MAX_ATTEMPTS,
-    )
+    @backoff(**BACKOFF_CONFIG.model_dump())
     def create_index(self) -> None:
         """Создает индекс в Elasticsearch."""
-        if not self.es.indices.exists(index=INDEX_NAME):
+        if not self.es.indices.exists(index=ELASTIC_CONFIG.index):
             try:
                 response = self.es.indices.create(
-                    index=INDEX_NAME,
+                    index=ELASTIC_CONFIG.index,
                     body=INDEX_SETTINGS,
                     headers={"Content-Type": "application/json"},
                 )
-                logger.info(f"Индекс '{INDEX_NAME}' создан успешно: {response}")
+                logger.info(
+                    f"Индекс '{ELASTIC_CONFIG.index}' создан успешно: {response}"
+                )
             except exceptions.RequestError as e:
                 logger.error(f"Ошибка при создании индекса в Elasticsearch: {e}")
                 raise
         else:
-            logger.info(f"Индекс '{INDEX_NAME}' уже существует.")
+            logger.info(f"Индекс '{ELASTIC_CONFIG.index}' уже существует.")
 
-    @backoff(
-        start_sleep_time=START_SLEEP_TIME,
-        factor=FACTOR,
-        border_sleep_time=BORDER_SLEEP_TIME,
-        max_attempts=MAX_ATTEMPTS,
-    )
+    @backoff(**BACKOFF_CONFIG.model_dump())
     def load_data(self, data: List[Dict[str, Any]]) -> None:
         """Загружает данные в Elasticsearch чанками."""
         logger.info(f"Всего записей для загрузки: {len(data)}")
@@ -60,17 +56,19 @@ class ElasticSearchClient:
             logger.warning("Передана пустая коллекция данных в Elasticsearch!")
             return
 
-        for chunk in self._generate_chunks(data, CHUNK_SIZE):
+        for chunk in self._generate_chunks(data, ETL_SETTINGS.chunk_size):
             bulk_data = ""
             for record in chunk:
                 bulk_data += '{"index": {"_index": "%s", "_id": "%s"}}\n' % (
-                    INDEX_NAME,
+                    ELASTIC_CONFIG.index,
                     record["id"],
                 )
                 bulk_data += json.dumps(record) + "\n"
 
             try:
-                logger.info(f"Загрузка {len(chunk)} записей в индекс '{INDEX_NAME}'...")
+                logger.info(
+                    f"Загрузка {len(chunk)} записей в индекс '{ELASTIC_CONFIG.index}'..."
+                )
                 response = self.es.bulk(
                     body=bulk_data,
                     params={"filter_path": "items.*.error"},
@@ -90,7 +88,7 @@ class ElasticSearchClient:
                     logger.error("Ошибки при загрузке данных в Elasticsearch.")
                 else:
                     logger.info(
-                        f"Успешно загружено {len(chunk)} записей в индекс '{INDEX_NAME}'."
+                        f"Успешно загружено {len(chunk)} записей в индекс '{ELASTIC_CONFIG.index}'."
                     )
 
             except exceptions.RequestError as e:

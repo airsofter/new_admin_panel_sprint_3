@@ -1,7 +1,7 @@
 import datetime
 import time
 from typing import Any, Callable, Dict
-from config import STATE_FILE_PATH
+from config import ETL_SETTINGS
 from Transformer import Transformer
 from StateManager import StateManager, JsonFileStorage
 from PostgresClient import PostgresClient
@@ -19,7 +19,7 @@ class Main:
         self.pg_client = PostgresClient()
         self.es_client = ElasticSearchClient()
         self.transformer = Transformer()
-        self.state_manager = StateManager(JsonFileStorage(STATE_FILE_PATH))
+        self.state_manager = StateManager(JsonFileStorage(ETL_SETTINGS.state_file_path))
         self.state_manager.add_listener(
             lambda ids, table: self.es_client.load_data(
                 self.transformer(self.tables[table][1](ids))

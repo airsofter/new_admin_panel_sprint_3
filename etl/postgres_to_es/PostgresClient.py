@@ -3,23 +3,23 @@ from typing import Generator, List, Dict, Any, Optional
 from psycopg.rows import dict_row
 from contextlib import closing
 from logging_config import logger
-from config import (BATCH_SIZE, BORDER_SLEEP_TIME,
-                    DATABASE, FACTOR, MAX_ATTEMPTS, START_SLEEP_TIME)
+from config import BACKOFF_CONFIG, POSTGRES_PROD
 from backoff import backoff
 
 
 class PostgresClient:
     """Клиент для взаимодействия с PostgreSQL."""
-    @backoff(
-        start_sleep_time=START_SLEEP_TIME,
-        factor=FACTOR,
-        border_sleep_time=BORDER_SLEEP_TIME,
-        max_attempts=MAX_ATTEMPTS
-    )
+
+    def __init__(self) -> None:
+        """Инициализирует подключение к базе данных PostgreSQL."""
+        self.db_config = POSTGRES_PROD.model_dump()
+
+    @backoff(**BACKOFF_CONFIG.model_dump())
     def fetch_records(
-        self, query: str, params: Optional[tuple] = None, batch_size: int = BATCH_SIZE
+        self, query: str, params: Optional[tuple] = None, batch_size: int = 100
     ) -> Generator[Dict[str, Any], None, None]:
-        with closing(psycopg.connect(**DATABASE)) as conn:
+        """Функция для получения записей из базы данных."""
+        with closing(psycopg.connect(**self.db_config)) as conn:
             try:
                 with conn.cursor(row_factory=dict_row) as cursor:
                     cursor.execute(query, params)
@@ -73,7 +73,7 @@ class PostgresClient:
     def get_film_ids_by_genre_ids(
         self, genre_ids: List[str]
     ) -> Generator[Dict[str, Any], None, None]:
-        """"Получает ID фильмов по списку ID жанров"""
+        """ "Получает ID фильмов по списку ID жанров"""
         query = """
             SELECT fw.id, fw.modified
             FROM content.film_work fw
